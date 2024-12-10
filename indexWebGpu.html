@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机像素画布 - WebGPU</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="fps">刷新率 (每秒帧数): </label>
+        <input type="number" id="fps" value="60" min="1" max="600">
+        <a href="./indexCanvas.html">Canvas</a>
+        <a href="./indexWebGl.html">WebGL</a>
+        <a href="./indexWebGpu.html">WebGPU</a>
+    </div>
+    <canvas id="randomCanvas"></canvas>
+    <script type="module">
+        let fps = 1;
+        let lastTime = 0;
+        let device, context, pipeline, swapChainFormat;
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                console.error('WebGPU 不被支持');
+                return;
+            }
+
+            const canvas = document.getElementById('randomCanvas');
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter.requestDevice();
+
+            context = canvas.getContext('webgpu');
+            swapChainFormat = 'bgra8unorm';
+            context.configure({
+                device: device,
+                format: swapChainFormat
+            });
+
+            const shaderModule = device.createShaderModule({
+                code: `
+                    @group(0) @binding(0)
+                    var<uniform> u_time : f32;
+
+                    fn hash(p: vec2<f32>) -> f32 {
+                        var p3 = fract(vec3<f32>(p.xyx) * 0.1031);
+                        p3 += dot(p3, p3.yzx + 33.33);
+                        return fract((p3.x + p3.y) * p3.z);
+                    }
+
+                    @vertex
+                    fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4<f32> {
+                        var pos = array<vec2<f32>, 6>(
+                            vec2<f32>(-1.0, -1.0),
+                            vec2<f32>(1.0, -1.0),
+                            vec2<f32>(-1.0, 1.0),
+                            vec2<f32>(-1.0, 1.0),
+                            vec2<f32>(1.0, -1.0),
+                            vec2<f32>(1.0, 1.0)
+                        );
+                        return vec4<f32>(pos[VertexIndex], 0.0, 1.0);
+                    }
+
+                    @fragment
+                    fn fs_main(@builtin(position) FragCoord: vec4<f32>) -> @location(0) vec4<f32> {
+                        let uv = FragCoord.xy + u_time;
+                        let r = hash(uv);
+                        let g = hash(uv*3);
+                        let b = hash(uv*7);
+                        let color = vec3<f32>(r, g, b);
+                        return vec4<f32>(color, 1.0);
+                    }
+                `
+            });
+
+            const pipelineDescriptor = {
+                layout: 'auto',
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main'
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [{ format: swapChainFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list'
+                }
+            };
+
+            pipeline = device.createRenderPipeline(pipelineDescriptor);
+
+            const uniformBuffer = device.createBuffer({
+                size: 4,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            const bindGroupLayout = pipeline.getBindGroupLayout(0);
+            const bindGroup = device.createBindGroup({
+                layout: bindGroupLayout,
+                entries: [{
+                    binding: 0,
+                    resource: {
+                        buffer: uniformBuffer
+                    }
+                }]
+            });
+
+            function draw(time) {
+                const commandEncoder = device.createCommandEncoder();
+                const textureView = context.getCurrentTexture().createView();
+                const renderPassDescriptor = {
+                    colorAttachments: [{
+                        view: textureView,
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                };
+
+                const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+                passEncoder.setPipeline(pipeline);
+                passEncoder.setBindGroup(0, bindGroup);
+                passEncoder.draw(6, 1, 0, 0);
+                passEncoder.end();
+
+                device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time * 0.001]));
+                device.queue.submit([commandEncoder.finish()]);
+            }
+
+            function animate(time) {
+                if (time - lastTime >= 1000 / fps) {
+                    draw(time);
+                    lastTime = time;
+                }
+                requestAnimationFrame(animate);
+            }
+
+            function resizeCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = Math.ceil(window.innerWidth * dpr);
+                canvas.height = Math.ceil(window.innerHeight * dpr);
+                canvas.style.width = `${window.innerWidth}px`;
+                canvas.style.height = `${window.innerHeight}px`;
+                context.configure({
+                    device: device,
+                    format: swapChainFormat,
+                    size: [canvas.width, canvas.height]
+                });
+            }
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            requestAnimationFrame(animate);
+        }
+
+        function startDrawing() {
+            const fpsInput = document.getElementById('fps');
+            fps = parseInt(fpsInput.value, 10);
+        }
+
+        window.onload = () => {
+            initWebGPU();
+            startDrawing();
+            document.getElementById('fps').addEventListener('input', startDrawing);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检测WebGL和WebGPU支持</title>
+    <script>
+        function supportsWebGL() {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!window.WebGLRenderingContext && (
+                    canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+                );
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function supportsWebGPU() {
+            return !!navigator.gpu;
+        }
+
+        window.onload = function() {
+            if (supportsWebGPU()) {
+                window.location.href = 'indexWebGpu.html';
+            } else if (supportsWebGL()) {
+                window.location.href = 'indexWebGl.html';
+            } else {
+                window.location.href = 'indexCanvas.html';
+            }
+        };
+    </script>
+</head>
+<body>
+    <p>检测WebGL和WebGPU支持中...</p>
+</body>
+</html>

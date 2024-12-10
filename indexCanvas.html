@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机像素画布</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="fps">刷新率 (每秒帧数): </label>
+        <input type="number" id="fps" value="1" min="1" max="600">
+        <a href="./indexCanvas.html">Canvas</a>
+        <a href="./indexWebGl.html">WebGL</a>
+        <a href="./indexWebGpu.html">WebGPU</a>
+    </div>
+    <canvas id="randomCanvas"></canvas>
+    <script>
+        let fps = 1;
+        let lastTime = 0;
+
+        function drawRandomPixels() {
+            const canvas = document.getElementById('randomCanvas');
+            const context = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const imageData = context.createImageData(canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.random() * 255;     // Red
+                data[i + 1] = Math.random() * 255; // Green
+                data[i + 2] = Math.random() * 255; // Blue
+                data[i + 3] = 255;                 // Alpha
+            }
+
+            context.putImageData(imageData, 0, 0);
+        }
+
+        function animate(time) {
+            if (time - lastTime >= 1000 / fps) {
+                drawRandomPixels();
+                lastTime = time;
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function startDrawing() {
+            const fpsInput = document.getElementById('fps');
+            fps = parseInt(fpsInput.value, 10);
+        }
+
+        window.onload = () => {
+            drawRandomPixels();
+            startDrawing();
+            document.getElementById('fps').addEventListener('input', startDrawing);
+            requestAnimationFrame(animate);
+        };
+
+        window.onresize = drawRandomPixels;
+    </script>
+</body>
+</html>
