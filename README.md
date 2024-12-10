@@ -20,22 +20,8 @@
 
 ## 示例
 
-### Canvas
-
-![Canvas 示例](./screenshots/canvas.png)
-
-### WebGL
-
-![WebGL 示例](./screenshots/webgl.png)
-
-### WebGPU
-
-![WebGPU 示例](./screenshots/webgpu.png)
+- [在线demo](https://randompixel-1pr.pages.dev)
 
 ## 贡献
 
 欢迎提交问题和贡献代码。
-
-## 许可证
-
-本项目采用MIT许可证。
