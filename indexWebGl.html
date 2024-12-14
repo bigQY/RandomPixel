@@ -25,6 +25,12 @@
             padding: 10px;
             border-radius: 5px;
         }
+        .stroked-text {
+            color: #000; /* 文本颜色 */
+            font-size: 18px; /* 文本大小 */
+            -webkit-text-stroke: 1px #e1e41c; /* 描边宽度 和 颜色 */
+            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; /* 描边效果 */
+        }
     </style>
 </head>
 <body>
@@ -32,7 +38,7 @@
         <label for="fps">刷新率 (每秒帧数): </label>
         <input type="number" id="fps" value="60" min="1" max="600">
         <a href="./indexCanvas.html">Canvas</a>
-        <a href="./indexWebGl.html">WebGL</a>
+        <a href="./indexWebGl.html" class="stroked-text">WebGL</a>
         <a href="./indexWebGpu.html">WebGPU</a>
     </div>
     <canvas id="randomCanvas"></canvas>
