@@ -94,12 +94,14 @@
 
                     @fragment
                     fn fs_main(@builtin(position) FragCoord: vec4<f32>) -> @location(0) vec4<f32> {
-                        let coord = FragCoord.xy * 0.1 + u_time * 10.0;
+                        // Use fragment coordinates and time to create truly random pixels
+                        let coord = FragCoord.xy;
                         
                         // Use different seeds for each channel to reduce correlation
-                        let r = hashSeed(coord, 12.9898);
-                        let g = hashSeed(coord, 78.233);
-                        let b = hashSeed(coord, 37.719);
+                        // Add time component to create different random values each frame
+                        let r = hashSeed(coord, u_time + 12.9898);
+                        let g = hashSeed(coord, u_time + 78.233);
+                        let b = hashSeed(coord, u_time + 37.719);
                         
                         let color = vec3<f32>(r, g, b);
                         return vec4<f32>(color, 1.0);

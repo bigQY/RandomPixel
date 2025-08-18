@@ -85,12 +85,14 @@
                 }
                 
                 void main() {
-                    vec2 coord = v_position * 1000.0 + u_time * 100.0;
+                    // Use vertex position and time to create truly random pixels
+                    vec2 coord = v_position;
                     
                     // Use different seeds for each channel to reduce correlation
-                    float r = hashSeed(coord, 12.9898);
-                    float g = hashSeed(coord, 78.233);
-                    float b = hashSeed(coord, 37.719);
+                    // Add time component to create different random values each frame
+                    float r = hashSeed(coord, u_time + 12.9898);
+                    float g = hashSeed(coord, u_time + 78.233);
+                    float b = hashSeed(coord, u_time + 37.719);
                     
                     gl_FragColor = vec4(r, g, b, 1.0);
                 }
