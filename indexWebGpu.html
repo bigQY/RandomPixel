@@ -43,7 +43,7 @@
     </div>
     <canvas id="randomCanvas"></canvas>
     <script type="module">
-        let fps = 1;
+        let fps = 60;
         let lastTime = 0;
         let device, context, pipeline, swapChainFormat;
 
@@ -70,9 +70,13 @@
                     var<uniform> u_time : f32;
 
                     fn hash(p: vec2<f32>) -> f32 {
-                        var p3 = fract(vec3<f32>(p.xyx) * 0.1031);
+                        var p3 = fract(vec3<f32>(p.xyx) * vec3<f32>(0.1031, 0.1030, 0.0973));
                         p3 += dot(p3, p3.yzx + 33.33);
                         return fract((p3.x + p3.y) * p3.z);
+                    }
+                    
+                    fn hashSeed(p: vec2<f32>, seed: f32) -> f32 {
+                        return hash(p + seed);
                     }
 
                     @vertex
@@ -90,10 +94,15 @@
 
                     @fragment
                     fn fs_main(@builtin(position) FragCoord: vec4<f32>) -> @location(0) vec4<f32> {
-                        let uv = FragCoord.xy + u_time;
-                        let r = hash(uv);
-                        let g = hash(uv*3);
-                        let b = hash(uv*7);
+                        // Use fragment coordinates and time to create truly random pixels
+                        let coord = FragCoord.xy;
+                        
+                        // Use different seeds for each channel to reduce correlation
+                        // Add time component to create different random values each frame
+                        let r = hashSeed(coord, u_time + 12.9898);
+                        let g = hashSeed(coord, u_time + 78.233);
+                        let b = hashSeed(coord, u_time + 37.719);
+                        
                         let color = vec3<f32>(r, g, b);
                         return vec4<f32>(color, 1.0);
                     }

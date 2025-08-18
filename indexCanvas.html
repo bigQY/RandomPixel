@@ -36,30 +36,42 @@
 <body>
     <div id="controls">
         <label for="fps">刷新率 (每秒帧数): </label>
-        <input type="number" id="fps" value="1" min="1" max="600">
+        <input type="number" id="fps" value="60" min="1" max="600">
         <a href="./indexCanvas.html" class="stroked-text">Canvas</a>
         <a href="./indexWebGl.html">WebGL</a>
         <a href="./indexWebGpu.html">WebGPU</a>
     </div>
     <canvas id="randomCanvas"></canvas>
     <script>
-        let fps = 1;
+        let fps = 60;
         let lastTime = 0;
+        let canvas, context, imageData, data32;
 
-        function drawRandomPixels() {
-            const canvas = document.getElementById('randomCanvas');
-            const context = canvas.getContext('2d');
+        function initCanvas() {
+            canvas = document.getElementById('randomCanvas');
+            context = canvas.getContext('2d');
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            
+            // Create reusable ImageData object
+            imageData = context.createImageData(canvas.width, canvas.height);
+            // Use Uint32Array view for faster pixel manipulation (4x faster than byte access)
+            data32 = new Uint32Array(imageData.data.buffer);
+        }
 
-            const imageData = context.createImageData(canvas.width, canvas.height);
-            const data = imageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = Math.random() * 255;     // Red
-                data[i + 1] = Math.random() * 255; // Green
-                data[i + 2] = Math.random() * 255; // Blue
-                data[i + 3] = 255;                 // Alpha
+        function drawRandomPixels() {
+            // Generate random pixels using Uint32Array for better performance
+            for (let i = 0; i < data32.length; i++) {
+                // Pack RGBA into single 32-bit value: 0xAABBGGRR
+                const r = Math.floor(Math.random() * 256);
+                const g = Math.floor(Math.random() * 256);
+                const b = Math.floor(Math.random() * 256);
+                const a = 255;
+                data32[i] = (a << 24) | (b << 16) | (g << 8) | r;
             }
 
             context.putImageData(imageData, 0, 0);
@@ -79,13 +91,17 @@
         }
 
         window.onload = () => {
+            initCanvas();
             drawRandomPixels();
             startDrawing();
             document.getElementById('fps').addEventListener('input', startDrawing);
             requestAnimationFrame(animate);
         };
 
-        window.onresize = drawRandomPixels;
+        window.onresize = () => {
+            resizeCanvas();
+            drawRandomPixels();
+        };
     </script>
 </body>
 </html>
